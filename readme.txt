@@ -1,10 +1,10 @@
 === YouTube with Universal Analytics Tracking ===
-Contributors: (this should be a list of wordpress.org userid's)
-Donate link: http://example.com/
-Tags: comments, spam
-Requires at least: 3.0.1
-Tested up to: 3.4
-Stable tag: 4.3
+Contributors: BilliardGreg
+Donate link: http://billiardgreg.com
+Tags: youtube, google analytics, universal analytics, video, videos, embed
+Requires at least: 4.1
+Tested up to: 4.1
+Stable tag: 1.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
