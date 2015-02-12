@@ -63,6 +63,7 @@ if (!class_exists('youtube_w_analytics')) :
 			
 			add_action('admin_init', array(&$this, 'admin_init'));
 			add_action('admin_menu', array(&$this, 'add_menu'));
+			add_shortcode('ytwa_video',array(&$this, 'display_video') );
 
 		}
 
@@ -155,22 +156,37 @@ if (!class_exists('youtube_w_analytics')) :
 			add_submenu_page($menu_slug, $submenu_page_title, $submenu_title, $capability, $submenu_slug, $submenu_function);
 			
 		}
-
+		function add_video_form() {
+			
+			?>
+			<form method="post">
+			<?php wp_nonce_field("add_video_form"); ?>
+			<input type="submit" name="ytwa_submit" value="Add Video">
+			</form>
+			<?php
+		}
 		function settings_page() {
 			$this->check_user();
 			global $wpdb;
+			
+			if (isset($_POST['ytwa_submit']) && check_admin_referer( 'add_video_form' ) ) {
+				$this->add_error_msg("Video Added");
+			} else if (isset($_POST['ytwa_submit'])) {
+				$this->add_error_msg("Error Adding Video");	
+			}
+			
 			//if passed then display following code to user
 ?>
     <!-- Create a header in the default WordPress 'wrap' container -->
-    <div class="wrap">
+    <div class="wrapper">
 <?php			
 			//$this->add_error_msg("Test Error Message");
 			echo "<h1>YouTube with Analytics Tracking Settings Page</h2>";
 			$this->disp_errors();
-
+			$this->add_video_form();
 			$tableName = $this->video_table_name;
 
-			$wpdb->get_results( 'SELECT * FROM ' . $tableName . ' ORDER BY id ASC' );
+			$wpdb->get_results( 'SELECT * FROM ' . $wpdb->prefix . $tableName . ' ORDER BY id ASC' );
 			$vidcount = $wpdb->num_rows;
 			if ($vidcount > 0) {
 
@@ -286,7 +302,12 @@ if (!class_exists('youtube_w_analytics')) :
 			</script>
             <?php
 		}
-		
+		function display_video() {
+			$a = shortcode_atts(
+				array(
+					'video' => '',
+					), $atts, 'ytwa_video');
+		}
 		function display_player_code($videonum, $videotitle) {
 			
 			?>
