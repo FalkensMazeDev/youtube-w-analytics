@@ -18,7 +18,7 @@ if (!class_exists('youtube_w_analytics')) :
 		//var $self = array();
 		
 		function __construct() {
-			
+			global $wpdb;
 
 			//place to set initial settings for plugin
 			$this->sessions_needed = false;	
@@ -27,7 +27,7 @@ if (!class_exists('youtube_w_analytics')) :
 
 			$this->variables['video_table_name'] ='youtube_w_analytics';
 			
-			$this->video_table_name = 'youtube_w_analytics';
+			$this->video_table_name = $wpdb->prefix . 'youtube_w_analytics';
 
 			// https://developers.google.com/youtube/player_parameters
 			// https://developers.google.com/youtube/js_api_reference
@@ -76,7 +76,7 @@ if (!class_exists('youtube_w_analytics')) :
 						`id` int(11) NOT NULL AUTO_INCREMENT,
 					 	`youtubeid` varchar(64) NOT NULL,
 					 	`videovariables` text NOT NULL,
-					 	`timestampexample` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					 	`datetimeadded` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 					 	UNIQUE id ( `id` )
 						";
 
@@ -156,11 +156,22 @@ if (!class_exists('youtube_w_analytics')) :
 			add_submenu_page($menu_slug, $submenu_page_title, $submenu_title, $capability, $submenu_slug, $submenu_function);
 			
 		}
-		function add_video_form() {
+		function add_video_form( $variables = array() ) {
 			
 			?>
 			<form method="post">
 			<?php wp_nonce_field("add_video_form"); ?>
+            YouTube Video ID: <input type="text" name="ytvid" value="<?php if (isset($variables['ytvid'])) echo $variables['ytvid']; ?>" /><br />
+            Height: <input type="text" name="ytvheight" value="<?php if (isset($variables['ytvheight'])) echo $variables['ytvheight']; ?>" size="4" maxlength="4" />px | Width: <input type="text" name="ytvwidth" value="<?php if (isset($variables['ytvwidth'])) echo $variables['ytvwidth']; ?>" size="4" maxlength="4" />px <br />
+            Modest Branding: <select name="ytmodbrand">
+            <option value="false" <?php if (isset($variables['ytmodbrand']) && $variables['ytmodbrand'] == 'false') echo ' selected="selected" '; ?>>False</option>
+            <option value="true" <?php if (isset($variables['ytmodbrand']) && $variables['ytmodbrand'] == 'true') echo ' selected="selected" '; ?>>True</option>
+            </select> | Relationships: <select name="ytrel">
+            <option value="0" <?php if (isset($variables['ytrel']) && $variables['ytrel'] == '0') echo ' selected="selected" '; ?>>No</option>
+            <option value="1" <?php if (isset($variables['ytrel']) && $variables['ytrel'] == '1') echo ' selected="selected" '; ?>>Yes</option>
+            </select> | Theme: <select name="yttheme">
+            <option value="dark" <?php if (isset($variables['yttheme']) && $variables['yttheme'] == 'dark') echo ' selected="selected" '; ?>>Dark</option>
+            <option value="light" <?php if (isset($variables['yttheme']) && $variables['yttheme'] == 'light') echo ' selected="selected" '; ?>>Light</option></select><br />
 			<input type="submit" name="ytwa_submit" value="Add Video">
 			</form>
 			<?php
@@ -168,9 +179,62 @@ if (!class_exists('youtube_w_analytics')) :
 		function settings_page() {
 			$this->check_user();
 			global $wpdb;
+
+			$vidTableName = $this->video_table_name;
+			
+			$variables == array();
 			
 			if (isset($_POST['ytwa_submit']) && check_admin_referer( 'add_video_form' ) ) {
-				$this->add_error_msg("Video Added");
+				//$this->add_error_msg("Video Added");
+				//echo "<pre>" . print_r($_POST,true) . "</pre>";
+				/*
+					Array
+					(
+						[_wpnonce] => f47322f2d8
+						[_wp_http_referer] => /wp-admin/admin.php?page=ywa-settings
+						[ytvid] => 7gwJ7g5DPlo
+						[ytvheight] => 600
+						[ytvwidth] => 460
+						[ytmodbrand] => false
+						[ytrel] => 0
+						[yttheme] => dark
+						[ytwa_submit] => Add Video
+					)
+				*/
+				$variables['ytvid'] = strip_tags($_POST['ytvid']);
+				$variables['ytvheight'] = strip_tags($_POST['ytvheight']);
+				$variables['ytvwidth'] = strip_tags($_POST['ytvwidth']);
+				$variables['ytmodbrand'] = strip_tags($_POST['ytmodbrand']);
+				$variables['ytrel'] = strip_tags($_POST['ytrel']);
+				$variables['yttheme'] = strip_tags($_POST['yttheme']);
+				
+				if ( 
+						($variables['ytvid'] != '' && $variables['ytvheight'] != '' && $variables['ytvwidth'] != '' 
+							&& $variables['ytmodbrand'] != '' && $variables['ytrel'] != '' && $variables['yttheme'] != '')
+					&& (is_numeric($variables['ytvheight']) && is_numeric($variables['ytvwidth']))) {
+						//insert video into database
+						$this->add_error_msg("Added Video to syatem");	
+						$insertValues = array(
+											'youtubeid' => $variables['ytvid'],
+											'videovariables' => serialize($variables),
+											);
+						$insertTypes = array(
+											'%s',
+											'%s',
+											);
+						if ($wpdb->insert( $vidTableName, $insertValues, $insertTypes)) {
+							//success
+							
+						} else {
+							//failed
+							
+						}
+						
+						$variables = array();
+					} else {
+						$this->add_error_msg("Error Adding Video");	
+					}
+				
 			} else if (isset($_POST['ytwa_submit'])) {
 				$this->add_error_msg("Error Adding Video");	
 			}
@@ -183,14 +247,93 @@ if (!class_exists('youtube_w_analytics')) :
 			//$this->add_error_msg("Test Error Message");
 			echo "<h1>YouTube with Analytics Tracking Settings Page</h2>";
 			$this->disp_errors();
-			$this->add_video_form();
-			$tableName = $this->video_table_name;
+			$this->add_video_form($variables);
 
-			$wpdb->get_results( 'SELECT * FROM ' . $wpdb->prefix . $tableName . ' ORDER BY id ASC' );
+			$videos = $wpdb->get_results( 'SELECT * FROM ' . $vidTableName . ' ORDER BY id ASC', ARRAY_A);
 			$vidcount = $wpdb->num_rows;
 			if ($vidcount > 0) {
+				?>
+                                    <script>
+					jQuery(document).ready(function(){
+						jQuery('button[name="update"]').click( function(e) {
+								//console.log(e);
+								e.preventDefault();
+								var videoid = jQuery(this).val();
+								console.log("videoid: " + videoid);
+								var ytvideoid = jQuery('input[name="videoid_' + videoid + '"]').val();
+								//alert(ytvideoid);
+								console.log(ytvideoid);
+							/*jQuery('<form>', {
+								'action': '<?php echo YWA_PATH; ?>',
+								'target': '_top'
+							}).append(jQuery('<input>', {
+								'name': 'q',
+								'value': 'stack overflow',
+								'type': 'hidden'
+							})).appendTo('body')
+							.submit();*/
+							
+						});
+					});
+					</script>
 
+                <table cellspacing="0" cellpadding="2" border="1">
+                <tr><th>Video ID</th><th>Video Height</th><th>Video Width</th><th>Modest Branding</th><th>Relationships</th><th>Theme</th><th></th></tr>
+                <?php
+				foreach ($videos as $video) {
+					//echo "<pre>" . print_r($video,true) . "</pre>";
+					$vars = unserialize($video['videovariables']);
+					?>
+                    <script>
+					jQuery(document).ready(function(){
+						jQuery('.update').click( function (e){
+							e.preventDefault();
+							//console.log(e);
+							var vidid = jQuery(this).attr('href');
+							//alert(vidid);
+							jQuery("#ytvid_" + vidid).hide();
+							jQuery("#edit_ytvid_" + vidid ).show();
+						});
 
+					});
+					</script>
+                    <tr id="ytvid_<?php echo $video['id']; ?>">
+                    <td><?php echo $video['youtubeid']; ?></td>
+                    <td><?php echo $vars['ytvheight']; ?></td>
+                    <td><?php echo $vars['ytvwidth']; ?></td>
+                    <td><?php echo $vars['ytmodbrand']; ?></td>
+                    <td><?php echo $vars['ytrel']; ?></td>
+                    <td><?php echo $vars['yttheme']; ?></td>
+                    <td><a href="<?php echo $video['id']; ?>" class="update">Update</a></td>
+                    </tr>
+                    <tr id="edit_ytvid_<?php echo $video['id']; ?>" style="display:none;">
+                    <form method="post" name="video_<?php echo $video['id']; ?>">
+					<?php wp_nonce_field("add_video_form"); ?>
+                    <input type="hidden" name="videoid_<?php echo $video['id']; ?>" value="<?php echo $video['id']; ?>" />                   
+                    <td><input type="text" name="youtubeid_<?php echo $video['id']; ?>" value="<?php echo $video['youtubeid']; ?>" /></td>
+                    <td><input type="text" name="ytvheight_<?php echo $video['id']; ?>" value="<?php echo $vars['ytvheight']; ?>" size="4" maxlength="4" /></td>
+                    <td><input type="text" name="ytvwidth_<?php echo $video['id']; ?>" value="<?php echo $vars['ytvwidth']; ?>" size="4" maxlength="4" /></td>
+                    <td><select name="ytmodbrand_<?php echo $video['id']; ?>">
+                        <option value="false" <?php if (isset($vars['ytmodbrand']) && $vars['ytmodbrand'] == 'false') echo ' selected="selected" '; ?>>False</option>
+                        <option value="true" <?php if (isset($vars['ytmodbrand']) && $vars['ytmodbrand'] == 'true') echo ' selected="selected" '; ?>>True</option>
+                        </select></td>
+                    <td><select name="ytrel_<?php echo $video['id']; ?>">
+                        <option value="0" <?php if (isset($vars['ytrel']) && $vars['ytrel'] == '0') echo ' selected="selected" '; ?>>No</option>
+                        <option value="1" <?php if (isset($vars['ytrel']) && $vars['ytrel'] == '1') echo ' selected="selected" '; ?>>Yes</option>
+                        </select></td>
+                    <td><select name="yttheme_<?php echo $video['id']; ?>">
+                        <option value="dark" <?php if (isset($vars['yttheme']) && $vars['yttheme'] == 'dark') echo ' selected="selected" '; ?>>Dark</option>
+                        <option value="light" <?php if (isset($vars['yttheme']) && $vars['yttheme'] == 'light') echo ' selected="selected" '; ?>>Light</option></select></td>
+            		<td>
+                    <button name="update" value="<?php echo $video['id']; ?>">Update Video</button>
+                    </td>
+                    </form>
+                    </tr>
+                    <?php
+				}
+				?>
+                </table>
+                <?php
 			} else {
 				echo "<h2>Currently no videos setup in the system.";
 			}
@@ -226,7 +369,7 @@ if (!class_exists('youtube_w_analytics')) :
 			*/
 			global $wpdb;
 			if ($variableSql != '') {
-				$sql = "CREATE TABLE IF NOT EXISTS `". $wpdb->prefix . $tablename."` ( ".$variableSql.");";
+				$sql = "CREATE TABLE IF NOT EXISTS `". $tableName."` ( ".$variableSql.");";
 				error_log($sql);
 				$wpdb->query($sql);
 				return true;
@@ -237,7 +380,7 @@ if (!class_exists('youtube_w_analytics')) :
 		
 		function drop_table($tablename) {
 			global $wpdb;
-			$sql = 	"DROP TABLE IF EXISTS " . $wpdb->prefix . $tablename;
+			$sql = 	"DROP TABLE IF EXISTS " . $tableName;
 			if ($wpdb->query($sql)) 
 				return true;			
 			return false;	
