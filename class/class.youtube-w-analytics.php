@@ -28,6 +28,8 @@ if (!class_exists('youtube_w_analytics')) :
 			$this->variables['video_table_name'] ='youtube_w_analytics';
 			
 			$this->video_table_name = $wpdb->prefix . 'youtube_w_analytics';
+			
+			define('YTVTABLE',$this->video_table_name);
 
 			// https://developers.google.com/youtube/player_parameters
 			// https://developers.google.com/youtube/js_api_reference
@@ -274,11 +276,67 @@ if (!class_exists('youtube_w_analytics')) :
 							.submit();*/
 							
 						});
+						jQuery('.updatevideo').click( function (e) {
+							e.preventDefault();
+							var vidid = jQuery(this).attr('value');
+							//alert(vidid);
+							var youtubeid = jQuery('#youtubeid_'+vidid).val();
+							var ytvheight = jQuery('#ytvheight_'+vidid).val();
+							var ytvwidth = jQuery('#ytvwidth_'+vidid).val();
+							var ytmodbrand = jQuery('#ytmodbrand_'+vidid).val();
+							var ytrel = jQuery('#ytrel_'+vidid).val();
+							var yttheme = jQuery('#yttheme_'+vidid).val();
+							<?php /*?>alert(	'Youtube ID: ' + youtubeid + "\n" +
+									'Youtube Height: ' + ytvheight + "\n" +
+									'Youtube Width: ' + ytvwidth + "\n" +
+									'Youtube Modest Branding: ' + ytmodbrand + "\n" +
+									'Youtube Relationships: ' + ytrel + "\n" +
+									'Youtube Theme: ' + yttheme + "\n");<?php */?>
+							var errormsg = "";
+							if (youtubeid == "") errormsg += "Please enter in a YouTube ID.\n";
+							if (Math.floor(ytvheight) != ytvheight) errormsg += "Please enter in a proper height.\n";
+							if (Math.floor(ytvwidth) != ytvwidth) errormsg += "Please enter in a proper width.\n";
+							if (errormsg != "") {
+								alert(errormsg);
+							} else {
+								//process submit
+								 jQuery.ajax({
+							
+										url: '<?php echo YWA_URL; ?>update_videos.php',
+										type: 'POST',
+										data: jQuery('#video_' + vidid).serialize(),
+										success: function(result){
+											
+											jQuery('#disp_youtubeid_' + vidid).text(youtubeid);
+											jQuery('#disp_ytvheight_' + vidid).text(ytvheight);
+											jQuery('#disp_ytvwidth_' + vidid).text(ytvwidth);
+											jQuery('#disp_ytmodbrand_' + vidid).text(ytmodbrand);
+											jQuery('#disp_ytrel_' + vidid).text(ytrel);
+											jQuery('#disp_yttheme_' + vidid).text(yttheme);
+											
+											jQuery("#ytvid_" + vidid).show();
+											jQuery("#edit_ytvid_" + vidid ).hide();
+											if (result == "true") {
+												alert("Your video has been updated in the database.");
+											} else {
+												alert("There was a problem updating the video in the database. Please try again.");	
+											}
+											 //$('#response').remove();
+											 //$('#container').append('<p id = "response">' + result + '</p>');
+											 //$('#loading').fadeOut(500);
+										   }
+							
+								});
+								
+							}
+						});
+
+
 					});
 					</script>
 
                 <table cellspacing="0" cellpadding="2" border="1">
-                <tr><th>Video ID</th><th>Video Height</th><th>Video Width</th><th>Modest Branding</th><th>Relationships</th><th>Theme</th><th></th></tr>
+                <tr><th>Shortcode Usage</th><th>Video ID</th><th>Video Height</th><th>Video Width</th><th>Modest Branding</th><th>Relationships</th><th>Theme</th><th></th></tr>
                 <?php
 				foreach ($videos as $video) {
 					//echo "<pre>" . print_r($video,true) . "</pre>";
@@ -294,38 +352,40 @@ if (!class_exists('youtube_w_analytics')) :
 							jQuery("#ytvid_" + vidid).hide();
 							jQuery("#edit_ytvid_" + vidid ).show();
 						});
-
+						
 					});
 					</script>
                     <tr id="ytvid_<?php echo $video['id']; ?>">
-                    <td><?php echo $video['youtubeid']; ?></td>
-                    <td><?php echo $vars['ytvheight']; ?></td>
-                    <td><?php echo $vars['ytvwidth']; ?></td>
-                    <td><?php echo $vars['ytmodbrand']; ?></td>
-                    <td><?php echo $vars['ytrel']; ?></td>
-                    <td><?php echo $vars['yttheme']; ?></td>
+                    <td style="text-align:center; font-weight:bold">&#91;ytwa vid="<?php echo $video['id']; ?>"&#93;</td>
+                    <td id="disp_youtubeid_<?php echo $video['id']; ?>"><?php echo $video['youtubeid']; ?></td>
+                    <td id="disp_ytvheight_<?php echo $video['id']; ?>"><?php echo $vars['ytvheight']; ?></td>
+                    <td id="disp_ytvwidth_<?php echo $video['id']; ?>"><?php echo $vars['ytvwidth']; ?></td>
+                    <td id="disp_ytmodbrand_<?php echo $video['id']; ?>"><?php echo $vars['ytmodbrand']; ?></td>
+                    <td id="disp_ytrel_<?php echo $video['id']; ?>"><?php echo $vars['ytrel']; ?></td>
+                    <td id="disp_yttheme_<?php echo $video['id']; ?>"><?php echo $vars['yttheme']; ?></td>
                     <td><a href="<?php echo $video['id']; ?>" class="update">Update</a></td>
                     </tr>
                     <tr id="edit_ytvid_<?php echo $video['id']; ?>" style="display:none;">
-                    <form method="post" name="video_<?php echo $video['id']; ?>">
-					<?php wp_nonce_field("add_video_form"); ?>
-                    <input type="hidden" name="videoid_<?php echo $video['id']; ?>" value="<?php echo $video['id']; ?>" />                   
-                    <td><input type="text" name="youtubeid_<?php echo $video['id']; ?>" value="<?php echo $video['youtubeid']; ?>" /></td>
-                    <td><input type="text" name="ytvheight_<?php echo $video['id']; ?>" value="<?php echo $vars['ytvheight']; ?>" size="4" maxlength="4" /></td>
-                    <td><input type="text" name="ytvwidth_<?php echo $video['id']; ?>" value="<?php echo $vars['ytvwidth']; ?>" size="4" maxlength="4" /></td>
-                    <td><select name="ytmodbrand_<?php echo $video['id']; ?>">
+                    <form method="post" name="video_<?php echo $video['id']; ?>" id="video_<?php echo $video['id']; ?>">
+					<?php wp_nonce_field("update_video_" . $video['id']); ?>
+                    <input type="hidden" name="videoid" value="<?php echo $video['id']; ?>" />
+                    <td style="text-align:center; font-weight:bold">&#91;ytwa vid="<?php echo $video['id']; ?>"&#93;</td>
+                    <td><input type="text" id="youtubeid_<?php echo $video['id']; ?>" name="youtubeid_<?php echo $video['id']; ?>" value="<?php echo $video['youtubeid']; ?>" /></td>
+                    <td><input type="text" id="ytvheight_<?php echo $video['id']; ?>" name="ytvheight_<?php echo $video['id']; ?>" value="<?php echo $vars['ytvheight']; ?>" size="4" maxlength="4" /></td>
+                    <td><input type="text" id="ytvwidth_<?php echo $video['id']; ?>" name="ytvwidth_<?php echo $video['id']; ?>" value="<?php echo $vars['ytvwidth']; ?>" size="4" maxlength="4" /></td>
+                    <td><select name="ytmodbrand_<?php echo $video['id']; ?>" id="ytmodbrand_<?php echo $video['id']; ?>">
                         <option value="false" <?php if (isset($vars['ytmodbrand']) && $vars['ytmodbrand'] == 'false') echo ' selected="selected" '; ?>>False</option>
                         <option value="true" <?php if (isset($vars['ytmodbrand']) && $vars['ytmodbrand'] == 'true') echo ' selected="selected" '; ?>>True</option>
                         </select></td>
-                    <td><select name="ytrel_<?php echo $video['id']; ?>">
+                    <td><select name="ytrel_<?php echo $video['id']; ?>" id="ytrel_<?php echo $video['id']; ?>">
                         <option value="0" <?php if (isset($vars['ytrel']) && $vars['ytrel'] == '0') echo ' selected="selected" '; ?>>No</option>
                         <option value="1" <?php if (isset($vars['ytrel']) && $vars['ytrel'] == '1') echo ' selected="selected" '; ?>>Yes</option>
                         </select></td>
-                    <td><select name="yttheme_<?php echo $video['id']; ?>">
+                    <td><select name="yttheme_<?php echo $video['id']; ?>" id="yttheme_<?php echo $video['id']; ?>">
                         <option value="dark" <?php if (isset($vars['yttheme']) && $vars['yttheme'] == 'dark') echo ' selected="selected" '; ?>>Dark</option>
                         <option value="light" <?php if (isset($vars['yttheme']) && $vars['yttheme'] == 'light') echo ' selected="selected" '; ?>>Light</option></select></td>
             		<td>
-                    <button name="update" value="<?php echo $video['id']; ?>">Update Video</button>
+                    <button name="updatevideo" value="<?php echo $video['id']; ?>" class="updatevideo">Update Video</button>
                     </td>
                     </form>
                     </tr>
