@@ -23,6 +23,7 @@ if (!current_user_can('manage_options')) {
 $video_id = strip_tags($_POST['videoid']);
 if (check_admin_referer("update_video_" . $video_id)) {
 	global $wpdb;
+	$vars['ytvtitle'] = strip_tags($_POST['ytvtitle_'.$video_id]);
 	$vars['ytvid'] = strip_tags($_POST['youtubeid_'.$video_id]);
 	$vars['ytvheight'] = strip_tags($_POST['ytvheight_'.$video_id]);
 	$vars['ytvwidth'] = strip_tags($_POST['ytvwidth_'.$video_id]);
@@ -42,11 +43,11 @@ if (check_admin_referer("update_video_" . $video_id)) {
 	if ( $wpdb->update(YTVTABLE, $updateValues, array( 'id' => $video_id ), $updateTypes, array('%d') )) {
 		echo "true";
 	} else {
-		echo "false1";
+		echo "false";
 	}
 	
 } else {
-	echo "false2";
+	echo "false";
 }
 
 
