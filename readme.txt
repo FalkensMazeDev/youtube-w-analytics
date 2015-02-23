@@ -35,4 +35,4 @@ Email me at <greg@wpcms.ninja> and ask away.
 == Changelog ==
 
 = 1.1 =
-* Initial release of plugin.  Currently it doesnt look like the theme choice is working the way it should.
+* Initial release of plugin. 
