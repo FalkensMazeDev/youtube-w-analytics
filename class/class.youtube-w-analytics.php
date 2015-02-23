@@ -23,7 +23,6 @@ if (!class_exists('youtube_w_analytics')) :
 			//place to set initial settings for plugin
 			$this->sessions_needed = false;	
 			$this->access_level = "manage_options";
-			$this->uatag = "ga";
 
 			$this->variables['video_table_name'] ='youtube_w_analytics';
 			
@@ -99,7 +98,7 @@ if (!class_exists('youtube_w_analytics')) :
 				endif;
 			endif;
 			
-			$this->init_settings();				
+			$this->init_settings();	
 			
 		}
 		
@@ -117,6 +116,8 @@ if (!class_exists('youtube_w_analytics')) :
 		
 		function init_settings() {
 			//customized init settings for entire program backend and front end
+			wp_enqueue_script('jquery');
+
 			add_action('wp_head', array(&$this, 'header') );
 			add_action('wp_footer', array(&$this, 'footer') );
 		}
@@ -127,6 +128,11 @@ if (!class_exists('youtube_w_analytics')) :
 
 		function header() {
 			echo "<!--Doing Header-->\n";
+
+			$headYtwa = new youtube_w_analytics();
+
+			$headYtwa->display_header_code();
+
 		}
 		
 		function update_options() {
@@ -190,6 +196,21 @@ if (!class_exists('youtube_w_analytics')) :
 			$this->check_user();
 			global $wpdb;
 
+			if (isset($_POST['update_settings']) && check_admin_referer( 'ytwa_settings' ) ) {
+
+				$tmpPost = $_POST;
+				$newytwa = $tmpPost['ytwa'];
+				update_option('ytwa_options',$newytwa);
+
+				$this->add_error_msg("Updated Options.");
+			} else if (isset($_POST['update_settings']) ) {
+				$this->add_error_msg("Error Updating Options.");
+
+			}
+
+
+			$ytwa = get_option('ytwa_options');
+
 			?>
 
 		    <div class="wrapper">
@@ -199,6 +220,11 @@ if (!class_exists('youtube_w_analytics')) :
 			$this->disp_errors();
 
 			?>
+			<form method="post">
+					<?php wp_nonce_field("ytwa_settings" ); ?>
+				Universal Analytics Object Name: <input type="text" name="ytwa[objectname]" value="<?php echo $ytwa['objectname']; ?>" /><br>
+				<input type="submit" name="update_settings" value="Update Settings">
+			</form>
 
 			</div>
 
@@ -298,18 +324,6 @@ if (!class_exists('youtube_w_analytics')) :
 								var videoid = jQuery(this).val();
 								console.log("videoid: " + videoid);
 								var ytvideoid = jQuery('input[name="videoid_' + videoid + '"]').val();
-								//alert(ytvideoid);
-//								console.log(ytvideoid);
-							/*jQuery('<form>', {
-								'action': '<?php echo YWA_PATH; ?>',
-								'target': '_top'
-							}).append(jQuery('<input>', {
-								'name': 'q',
-								'value': 'stack overflow',
-								'type': 'hidden'
-							})).appendTo('body')
-							.submit();*/
-							
 						});
 						jQuery('.delete').click( function (e) {
 							e.preventDefault();
@@ -337,9 +351,6 @@ if (!class_exists('youtube_w_analytics')) :
 											} else {
 												jQuery('#vuerror').multiline("There was a problem deleting the video.\n");
 											}
-											 //$('#response').remove();
-											 //$('#container').append('<p id = "response">' + result + '</p>');
-											 //$('#loading').fadeOut(500);
 										   }
 							
 								});
@@ -426,7 +437,7 @@ if (!class_exists('youtube_w_analytics')) :
 					});
 					</script>
                     <tr id="ytvid_<?php echo $video['id']; ?>">
-                    <td style="text-align:center; font-weight:bold">&#91;ytwa vid="<?php echo $video['id']; ?>"&#93;</td>
+                    <td style="text-align:center; font-weight:bold">&#91;ytwa_video vid="<?php echo $video['id']; ?>"&#93;</td>
                     <td id="disp_ytvtitle_<?php echo $video['id']; ?>" style="width:140px;"><?php echo $vars['ytvtitle']; ?><?php //echo "<pre>" . print_r($video,true) . "</pre>"; ?></td>
                     <td id="disp_youtubeid_<?php echo $video['id']; ?>" style="width:140px;"><?php echo $video['youtubeid']; ?></td>
                     <td id="disp_ytvheight_<?php echo $video['id']; ?>" style="width:100px;"><?php echo $vars['ytvheight']; ?></td>
@@ -538,72 +549,92 @@ if (!class_exists('youtube_w_analytics')) :
 		}
 		
 		function display_header_code() {
-			$videos = $this->videos;
+			global $wpdb;
+
+			$videosSql = "SELECT * FROM " . $this->video_table_name;
+
+			$videos = $wpdb->get_results($videosSql, ARRAY_A);
+
 			?>
-			<script>
-				 var tag = document.createElement('script');
-				 tag.src = "http://www.youtube.com/player_api";
-				 var firstScriptTag = document.getElementsByTagName('script')[0];
-				 firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-				<?php
-				foreach ($videos as $video) {
-					?>
-				 var player<?=$video['id']?>;
-				 var lastAction<?=$video['id']?> = '';
-				 <?php
-				}
-				?>
-				 function onYouTubePlayerAPIReady() {
-				 	$videos = $this->videos;
-				<?php
-				foreach ($videos as $video) {
-					?>
-					 player<?=$video['id']?> = new YT.Player('player<?=$video['id']?>', {
-						 playerVars: {
-							 <?php
-							 foreach ($pvparams as $pname => $pvalue) {
-								 if ($pvalue != '') echo $pname.": '".$pvalue."',\n";
-							 }
-							 ?>
-						 },
-						 height: '<?=$video['height']?>',
-						 width: '<?=$video['width']?>',
-						 videoId: '<?=$video['youtubeid']?>',
-						 events: {
-							 'onStateChange': onPlayerStateChange<?=$video['id']?>
-						 }
-					 });
+<script>
+
+	var tag = document.createElement('script');
+	tag.src = "http://www.youtube.com/player_api";
+	var firstScriptTag = document.getElementsByTagName('script')[0];
+	firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+<?php foreach ($videos as $video) { ?>
+	var player<?php echo $video['id']; ?>;
+	var lastAction<?php echo $video['id']; ?> = '';
+	var onPlayerStateChange<?php echo $video['id']; ?>;
+<?php }	?>
+	function onYouTubePlayerAPIReady() {
+<?php 	foreach ($videos as $video) { 
+					$pvparams = unserialize($video['videovariables']);
+?>
+		player<?php echo $video['id']; ?> = new YT.Player('player<?php echo $video['id']; ?>', {
+			playerVars: {
+		    	modestbranding: <?php echo $pvparams['ytmodbrand']; ?>,
+		        theme: '<?php echo $pvparams['yttheme']; ?>',
+		        rel:  <?php echo $pvparams['ytrel']; ?>,
+		},
+		height: '<?php echo $pvparams['ytvheight']; ?>',
+		width: '<?php echo $pvparams['ytvwidth']; ?>',
+		videoId: '<?php echo $video['youtubeid']; ?>',
+		events: {
+			'onStateChange': onPlayerStateChange<?php echo $video['id']; ?>
+
+		}
+	});
 					 <?php
 				}
 				?>
-				 }
-			</script>
+}
+</script>
             <?php
 		}
-		function display_video() {
+		function display_video($atts) {
+			global $wpdb;
 			$a = shortcode_atts(
 				array(
-					'video' => '',
+					'vid' => '',
 					), $atts, 'ytwa_video');
-		}
-		function display_player_code($videonum, $videotitle) {
+
+			$ytwa = new youtube_w_analytics();
+
+			$videoSql = "SELECT * FROM " . $ytwa->video_table_name . " WHERE id=%d";
+
+			$video = $wpdb->get_results($wpdb->prepare($videoSql, $a['vid']), ARRAY_A);
+//			echo "<pre>". print_r($video,true) . "</pre>";
+//			return;
+			//return;
+			$videoId = $video[0]['id'];
+			$videoVars = unserialize($video[0]['videovariables']);
 			
+			$ytwa_options = get_option('ytwa_options');
+
+			$ytwa->display_player_code($videoId,$videoVars['ytvtitle'], $ytwa_options['objectname']);
+
+		}
+		function display_player_code($videonum, $videotitle, $uatag) {
+			//$videotitle = str_replace(" ", "_", $videotitle);
 			?>
 <div id="player<?php echo $videonum; ?>"></div>
      <script>
+
 		function onPlayerStateChange<?php echo $videonum; ?>(event) {
              switch (event.data) {
                  case YT.PlayerState.PLAYING:
-						<?php echo $this->uatag; ?>('send', 'event', '<?php echo $videotitle; ?>', 'started');
+						<?php echo $uatag; ?>('send', 'event', '<?php echo $videotitle; ?>', 'started');
                      break;
                  case YT.PlayerState.ENDED:
-						<?php echo $this->uatag; ?>('send', 'event', '<?php echo $videotitle; ?>', 'completed');
+						<?php echo $uatag; ?>('send', 'event', '<?php echo $videotitle; ?>', 'completed');
                      break;
                  case YT.PlayerState.PAUSED:
-                     if (lastAction != 'paused') {
-						<?php echo $this->uatag; ?>('send', 'event', '<?php echo $videotitle; ?>', 'paused');
+                     if (lastAction<?php echo $videonum; ?> != 'paused') {
+						<?php echo $uatag; ?>('send', 'event', '<?php echo $videotitle; ?>', 'paused');
                      } else {
-                         lastAction = 'paused';
+                         lastAction<?php echo $videonum; ?> = 'paused';
                      }
                      break;
              }

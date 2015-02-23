@@ -23,7 +23,4 @@ if (class_exists('youtube_w_analytics')) {
 
 	$youtube_w_analytics = new youtube_w_analytics();	
 
-	// register_activation_hook(__FILE__, array('youtube_w_analytics','activate'));
-	// register_deactivation_hook(__FILE__,array('youtube_w_analytics','deactivate'));
-
 }
