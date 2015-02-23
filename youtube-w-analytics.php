@@ -2,7 +2,7 @@
 
 /*
 Plugin Name: YouTube with Universal Analytics Tracking
-Plugin URI: http://www.wp-411.com
+Plugin URI: http://wpcms.ninja
 Description: YouTube video embed system that adds tracking for Universal Analytics Events to the start, pause, and completion of a video. 
 Author: Greg Whitehead
 Version: 1.1

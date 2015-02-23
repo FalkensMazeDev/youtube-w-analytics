@@ -12,14 +12,14 @@ YouTube video embed system that adds tracking for Universal Analytics Events to 
 
 == Description ==
 
-Setup the Universal Analytics Javascript Object Name on the settings page, Usually "ga".  Enter in the YouTube Video ID, the Title of the video you want to track, the height and width, and a few other customization options.  Then using a simple shortcode call you are able to implement a tracked YouTube video onto any place you can use a shortcode.
+YouTube video embed system that adds tracking for Universal Analytics Events to the start, pause, and completion of a video.  Setup the Universal Analytics Javascript Object Name on the settings page, Usually "ga".  Enter in the YouTube Video ID, the Title of the video you want to track, the height and width, and a few other customization options.  Then using a simple shortcode call you are able to implement a tracked YouTube video onto any place you can use a shortcode.
 
 == Installation ==
 
 1. Install plugin and activate.
-2. Go to settings page and modify the Universal Analytics Object name.
-3. Go to the videos page and add your video that you want to embed with the settings you want.
-4. Enter in shortcode into page or post.
+1. Go to settings page and modify the Universal Analytics Object name.
+1. Go to the videos page and add your video that you want to embed with the settings you want.
+1. Enter in shortcode into page or post.
 
 == Frequently Asked Questions ==
 
@@ -36,3 +36,8 @@ Email me at <greg@wpcms.ninja> and ask away.
 
 = 1.1 =
 * Initial release of plugin. 
+
+== Upgrade Notice ==
+
+= 1.1 =
+Initla Release of Site
