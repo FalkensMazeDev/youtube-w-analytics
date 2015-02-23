@@ -613,34 +613,35 @@ if (!class_exists('youtube_w_analytics')) :
 			
 			$ytwa_options = get_option('ytwa_options');
 
-			$ytwa->display_player_code($videoId,$videoVars['ytvtitle'], $ytwa_options['objectname']);
+			return $ytwa->display_player_code($videoId,$videoVars['ytvtitle'], $ytwa_options['objectname']);
 
 		}
 		function display_player_code($videonum, $videotitle, $uatag) {
 			//$videotitle = str_replace(" ", "_", $videotitle);
-			?>
-<div id="player<?php echo $videonum; ?>"></div>
-     <script>
+			$returnHtml = '';
+			$returnHtml .= '<div id="player'.$videonum. '"></div>' . "\n";
+			$returnHtml .= '     <script>' . "\n";
 
-		function onPlayerStateChange<?php echo $videonum; ?>(event) {
-             switch (event.data) {
-                 case YT.PlayerState.PLAYING:
-						<?php echo $uatag; ?>('send', 'event', '<?php echo $videotitle; ?>', 'started');
-                     break;
-                 case YT.PlayerState.ENDED:
-						<?php echo $uatag; ?>('send', 'event', '<?php echo $videotitle; ?>', 'completed');
-                     break;
-                 case YT.PlayerState.PAUSED:
-                     if (lastAction<?php echo $videonum; ?> != 'paused') {
-						<?php echo $uatag; ?>('send', 'event', '<?php echo $videotitle; ?>', 'paused');
-                     } else {
-                         lastAction<?php echo $videonum; ?> = 'paused';
-                     }
-                     break;
-             }
-         }
-	</script>
-                <?php	
+			$returnHtml .= '		function onPlayerStateChange'. $videonum. '(event) {' . "\n";
+			$returnHtml .= '            switch (event.data) {' . "\n";
+			$returnHtml .= '                case YT.PlayerState.PLAYING:' . "\n";
+			$returnHtml .= '						'. $uatag. "('send', 'event', '". $videotitle. "', 'started');" . "\n";
+			$returnHtml .= '                     break;' . "\n";
+			$returnHtml .= '                 case YT.PlayerState.ENDED:' . "\n";
+			$returnHtml .= '						'. $uatag. "('send', 'event', '".$videotitle. "', 'completed');" . "\n";
+			$returnHtml .= '                     break;' . "\n";
+			$returnHtml .= '                 case YT.PlayerState.PAUSED:' . "\n";
+			$returnHtml .= '                     if (lastAction' . $videonum. " != 'paused') {" . "\n";
+			$returnHtml .= '						'. $uatag."('send', 'event', '" . $videotitle. "', 'paused');" . "\n";
+			$returnHtml .= '                     } else {' . "\n";
+			$returnHtml .= '                         lastAction'. $videonum ." = 'paused';" . "\n";
+			$returnHtml .= '                     }' . "\n";
+			$returnHtml .= '                     break;' . "\n";
+			$returnHtml .= '             }' . "\n";
+			$returnHtml .= '         }' . "\n";
+			$returnHtml .= '	</script>' . "\n";
+            
+            return $returnHtml;
 		}
 
 		function ytp_help_page() {
