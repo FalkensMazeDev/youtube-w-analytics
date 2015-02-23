@@ -3,7 +3,7 @@
 /*
 Plugin Name: YouTube with Universal Analytics Tracking
 Plugin URI: http://www.wp-411.com
-Description: Embeds a YouTube video and implements event tracking for Google's Universal Analytics.
+Description: YouTube video embed system that adds tracking for Universal Analytics Events to the start, pause, and completion of a video. 
 Author: Greg Whitehead
 Version: 1.1
 Author URI: http://www.gregwhitehead.us/
@@ -21,6 +21,6 @@ include("class/class.youtube-w-analytics.php");
 
 if (class_exists('youtube_w_analytics')) {
 
-	$youtube_w_analytics = new youtube_w_analytics();	
+	$youtube_w_analytics = new youtube_w_analytics( __FILE__ );	
 
 }

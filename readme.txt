@@ -8,15 +8,18 @@ Stable tag: 1.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-YouTube video embed system that adds tracking events to the start, pause, and completion of a video.  
+YouTube video embed system that adds tracking for Universal Analytics Events to the start, pause, and completion of a video.  
 
 == Description ==
 
-Description coming soon.
+Setup the Universal Analytics Javascript Object Name on the settings page, Usually "ga".  Enter in the YouTube Video ID, the Title of the video you want to track, the height and width, and a few other customization options.  Then using a simple shortcode call you are able to implement a tracked YouTube video onto any place you can use a shortcode.
 
 == Installation ==
 
-Installation coming soon.
+1. Install plugin and activate.
+2. Go to settings page and modify the Universal Analytics Object name.
+3. Go to the videos page and add your video that you want to embed with the settings you want.
+4. Enter in shortcode into page or post.
 
 == Frequently Asked Questions ==
 
@@ -27,9 +30,9 @@ Email me at <greg@wpcms.ninja> and ask away.
 
 == Screenshots ==
 
-1. Not sure if I am going to do screenshots.
+1. No Screenshot.
 
 == Changelog ==
 
 = 1.1 =
-* Initial release of plugin
+* Initial release of plugin.  Currently it doesnt look like the theme choice is working the way it should.

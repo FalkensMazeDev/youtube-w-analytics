@@ -17,7 +17,7 @@ if (!class_exists('youtube_w_analytics')) :
 
 		//var $self = array();
 		
-		function __construct() {
+		function __construct($file) {
 			global $wpdb;
 
 			//place to set initial settings for plugin
@@ -57,8 +57,8 @@ if (!class_exists('youtube_w_analytics')) :
 									'theme' => 'dark',			
 									);
 			
-			register_activation_hook(__FILE__, array(&$this,'activate'));
-			register_deactivation_hook(__FILE__,array(&$this,'deactivate'));
+			register_activation_hook($file, array(&$this,'activate'));
+			register_deactivation_hook($file,array(&$this,'deactivate'));
 
 			add_action('init', array(&$this, 'init'));
 			
@@ -83,14 +83,20 @@ if (!class_exists('youtube_w_analytics')) :
 
 			self::create_table($tableName,$tableSql);
 			
+			update_option('ytwa_options', array('objectname'=>'ga', 'width'=> '500', 'height'=> '350') );
+			
 		}
 		
 		function deactivate() {
 			$youtube_w_analytics = new youtube_w_analytics();
 
 			$tableName = $youtube_w_analytics->video_table_name;
-			self::drop_table($this->$tableName);
+			
+			self::drop_table($tableName);
+			
+			delete_option('ytwa_options');
 		}
+		
 		function init() {
 			if ($this->sessions_needed) :
 				if (!session_id()) :
@@ -172,13 +178,19 @@ if (!class_exists('youtube_w_analytics')) :
 			
 		}
 		function add_video_form( $variables = array() ) {
-			
+			$ytwa = get_option('ytwa_options');
+			if ($variables['ytvwidth'] == '') {
+				$variables['ytvwidth'] = $ytwa['width'];	
+			}
+			if ($variables['ytvheight'] == '') {
+				$variables['ytvheight'] = $ytwa['height'];	
+			}
 			?>
 			<form method="post">
 			<?php wp_nonce_field("add_video_form"); ?>
             YouTube Video Title: <input type="text" name="ytvtitle" value="<?php if (isset($variables['ytvtitle'])) echo $variables['ytvtitle']; ?>" /><br />
             YouTube Video ID: <input type="text" name="ytvid" value="<?php if (isset($variables['ytvid'])) echo $variables['ytvid']; ?>" /><br />
-            Height: <input type="text" name="ytvheight" value="<?php if (isset($variables['ytvheight'])) echo $variables['ytvheight']; ?>" size="4" maxlength="4" />px | Width: <input type="text" name="ytvwidth" value="<?php if (isset($variables['ytvwidth'])) echo $variables['ytvwidth']; ?>" size="4" maxlength="4" />px <br />
+            Width: <input type="text" name="ytvwidth" value="<?php if (isset($variables['ytvwidth'])) echo $variables['ytvwidth']; ?>" size="4" maxlength="4" />px | Height: <input type="text" name="ytvheight" value="<?php if (isset($variables['ytvheight'])) echo $variables['ytvheight']; ?>" size="4" maxlength="4" />px<br />
             Modest Branding: <select name="ytmodbrand">
             <option value="false" <?php if (isset($variables['ytmodbrand']) && $variables['ytmodbrand'] == 'false') echo ' selected="selected" '; ?>>False</option>
             <option value="true" <?php if (isset($variables['ytmodbrand']) && $variables['ytmodbrand'] == 'true') echo ' selected="selected" '; ?>>True</option>
@@ -210,7 +222,7 @@ if (!class_exists('youtube_w_analytics')) :
 
 
 			$ytwa = get_option('ytwa_options');
-
+			
 			?>
 
 		    <div class="wrapper">
@@ -221,8 +233,34 @@ if (!class_exists('youtube_w_analytics')) :
 
 			?>
 			<form method="post">
+            <style>
+			.indent {
+				display:inline-block;
+				width:50px;
+			}
+			.objectname {
+				color:#ff0000;	 
+				font-weight:bold; 
+				font-size:24px	
+			}
+			</style>
+<div style="margin-left:20px;">
+&lt;script&gt;<br />
+<span class="indent">&nbsp;</span>(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){<br />
+<span class="indent">&nbsp;</span>(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),<br />
+<span class="indent">&nbsp;</span>m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)<br />
+<span class="indent">&nbsp;</span>})(window,document,'script','//www.google-analytics.com/analytics.js','ga');<br /><br />
+
+<span class="indent">&nbsp;</span><strong class="objectname">ga</strong>('create', 'UA-XXXXXXXX-X', 'auto');<br />
+<span class="indent">&nbsp;</span><strong class="objectname">ga</strong>('require', 'displayfeatures');<br />
+<span class="indent">&nbsp;</span><strong class="objectname">ga</strong>('send', 'pageview');<br />
+&lt;/script&gt;
+</div>
 					<?php wp_nonce_field("ytwa_settings" ); ?>
-				Universal Analytics Object Name: <input type="text" name="ytwa[objectname]" value="<?php echo $ytwa['objectname']; ?>" /><br>
+				Universal Analytics Object Name: <input type="text" name="ytwa[objectname]" value="<?php echo $ytwa['objectname']; ?>" /><br />
+(in above code the red and bold ga text that you are looking for to enter in here)<br>
+				Default width: <input type="text" name="ytwa[width]" value="<?php echo $ytwa['width']; ?>" /><br>
+				Default height: <input type="text" name="ytwa[height]" value="<?php echo $ytwa['height']; ?>" /><br>
 				<input type="submit" name="update_settings" value="Update Settings">
 			</form>
 
@@ -417,7 +455,7 @@ if (!class_exists('youtube_w_analytics')) :
 					</script>
 					<div id="vuerror" style="font-weight:bold; color:#ff0000;">&nbsp;</div>
                 <table cellspacing="0" cellpadding="2" border="1">
-                <tr><th>Shortcode Usage</th><th>Video Title</th><th>Video ID</th><th>Video Height</th><th>Video Width</th><th>Modest Branding</th><th>Relationships</th><th>Theme</th><th></th><th></th></tr>
+                <tr><th>Shortcode Usage</th><th>Video Title</th><th>Video ID</th><th>Video Width</th><th>Video Height</th><th>Modest Branding</th><th>Relationships</th><th>Theme</th><th></th><th></th></tr>
                 <?php
 				foreach ($videos as $video) {
 					//echo "<pre>" . print_r($video,true) . "</pre>";
@@ -440,8 +478,8 @@ if (!class_exists('youtube_w_analytics')) :
                     <td style="text-align:center; font-weight:bold">&#91;ytwa_video vid="<?php echo $video['id']; ?>"&#93;</td>
                     <td id="disp_ytvtitle_<?php echo $video['id']; ?>" style="width:140px;"><?php echo $vars['ytvtitle']; ?><?php //echo "<pre>" . print_r($video,true) . "</pre>"; ?></td>
                     <td id="disp_youtubeid_<?php echo $video['id']; ?>" style="width:140px;"><?php echo $video['youtubeid']; ?></td>
-                    <td id="disp_ytvheight_<?php echo $video['id']; ?>" style="width:100px;"><?php echo $vars['ytvheight']; ?></td>
                     <td id="disp_ytvwidth_<?php echo $video['id']; ?>" style="width:100px;"><?php echo $vars['ytvwidth']; ?></td>
+                    <td id="disp_ytvheight_<?php echo $video['id']; ?>" style="width:100px;"><?php echo $vars['ytvheight']; ?></td>
                     <td id="disp_ytmodbrand_<?php echo $video['id']; ?>"><?php echo $vars['ytmodbrand']; ?></td>
                     <td id="disp_ytrel_<?php echo $video['id']; ?>"><?php echo $vars['ytrel']; ?></td>
                     <td id="disp_yttheme_<?php echo $video['id']; ?>" style="width:70px;"><?php echo $vars['yttheme']; ?></td>
@@ -455,8 +493,8 @@ if (!class_exists('youtube_w_analytics')) :
                     <td style="text-align:center; font-weight:bold">&#91;ytwa vid="<?php echo $video['id']; ?>"&#93;</td>
                     <td style="width:140px;"><input type="text" id="ytvtitle_<?php echo $video['id']; ?>" name="ytvtitle_<?php echo $video['id']; ?>" value="<?php echo $vars['ytvtitle']; ?>" style="width:120px;" /></td>
                     <td style="width:140px;"><input type="text" id="youtubeid_<?php echo $video['id']; ?>" name="youtubeid_<?php echo $video['id']; ?>" value="<?php echo $video['youtubeid']; ?>" style="width:120px;" /></td>
-                    <td style="width:100px;"><input type="text" id="ytvheight_<?php echo $video['id']; ?>" name="ytvheight_<?php echo $video['id']; ?>" value="<?php echo $vars['ytvheight']; ?>" size="4" maxlength="4" style="width:80px;" /></td>
                     <td style="width:100px;"><input type="text" id="ytvwidth_<?php echo $video['id']; ?>" name="ytvwidth_<?php echo $video['id']; ?>" value="<?php echo $vars['ytvwidth']; ?>" size="4" maxlength="4" style="width:80px;" /></td>
+                    <td style="width:100px;"><input type="text" id="ytvheight_<?php echo $video['id']; ?>" name="ytvheight_<?php echo $video['id']; ?>" value="<?php echo $vars['ytvheight']; ?>" size="4" maxlength="4" style="width:80px;" /></td>
                     <td><select name="ytmodbrand_<?php echo $video['id']; ?>" id="ytmodbrand_<?php echo $video['id']; ?>">
                         <option value="false" <?php if (isset($vars['ytmodbrand']) && $vars['ytmodbrand'] == 'false') echo ' selected="selected" '; ?>>False</option>
                         <option value="true" <?php if (isset($vars['ytmodbrand']) && $vars['ytmodbrand'] == 'true') echo ' selected="selected" '; ?>>True</option>
@@ -501,7 +539,7 @@ if (!class_exists('youtube_w_analytics')) :
 			return true;
 		}
 		
-		function create_table($tablename, $variableSql) {
+		function create_table($tableName, $variableSql) {
 			/*		Sample $variableSql data
 						
 					  Automatically adds database prefix to this database table
@@ -516,7 +554,6 @@ if (!class_exists('youtube_w_analytics')) :
 			global $wpdb;
 			if ($variableSql != '') {
 				$sql = "CREATE TABLE IF NOT EXISTS `". $tableName."` ( ".$variableSql.");";
-				error_log($sql);
 				$wpdb->query($sql);
 				return true;
 			}
@@ -524,7 +561,7 @@ if (!class_exists('youtube_w_analytics')) :
 			return false;
 		}
 		
-		function drop_table($tablename) {
+		function drop_table($tableName) {
 			global $wpdb;
 			$sql = 	"DROP TABLE IF EXISTS " . $tableName;
 			if ($wpdb->query($sql)) 
