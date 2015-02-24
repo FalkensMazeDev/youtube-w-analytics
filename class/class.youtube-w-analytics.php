@@ -17,7 +17,7 @@ if (!class_exists('youtube_w_analytics')) :
 
 		//var $self = array();
 		
-		function __construct($file) {
+		function __construct($file = __FILE__) {
 			global $wpdb;
 
 			//place to set initial settings for plugin
@@ -118,7 +118,71 @@ if (!class_exists('youtube_w_analytics')) :
 			//customized initilization for the admin area only
 			$this->init_settings();
 			
+			add_action( 'wp_ajax_updatevideo', array(&$this, 'tywa_callback') );
+			add_action( 'wp_ajax_deletevideo', array(&$this, 'tywa_callback') );
+
+			
 		}
+
+		function tywa_callback() {
+
+				$action = strip_tags( $_POST['action'] );
+				
+				switch ($action) {
+					case 'updatevideo':
+						global $wpdb; // this is how you get access to the database
+						
+						$video_id = strip_tags($_POST['videoid']);
+						if (check_admin_referer("update_video_" . $video_id)) {
+							$vars['ytvtitle'] = strip_tags($_POST['ytvtitle_'.$video_id]);
+							$vars['ytvid'] = strip_tags($_POST['youtubeid_'.$video_id]);
+							$vars['ytvheight'] = strip_tags($_POST['ytvheight_'.$video_id]);
+							$vars['ytvwidth'] = strip_tags($_POST['ytvwidth_'.$video_id]);
+							$vars['ytmodbrand'] = strip_tags($_POST['ytmodbrand_'.$video_id]);
+							$vars['ytrel'] = strip_tags($_POST['ytrel_'.$video_id]);
+							$vars['yttheme'] = strip_tags($_POST['yttheme_'.$video_id]);
+							
+							$updateValues = array(
+												'youtubeid' => $vars['ytvid'],
+												'videovariables' => serialize($vars),
+												);
+							$updateTypes = array(
+												'%s',
+												'%s',
+												);
+						
+							if ( $wpdb->update(YTVTABLE, $updateValues, array( 'id' => $video_id ), $updateTypes, array('%d') )) {
+								echo "true";
+							} else {
+								echo "false";
+							}
+							
+						} else {
+							echo "false";
+						}
+					
+					break;
+					case 'deletevideo':
+						global $wpdb; // this is how you get access to the database
+						
+						$vidid = $_POST['videoid'];
+						$verifyId = base64_decode($_POST['hashtag']);
+						
+						if ($vidid == $verifyId) {
+							if ( $wpdb->delete(YTVTABLE, array('id' => $vidid) ) ) {
+								echo "true";
+							} else {
+								echo "false";
+							}
+						} else {
+							echo "false";
+						}
+					break;	
+				}
+			
+				wp_die(); // this is required to terminate immediately and return a proper response
+			}
+
 		
 		function init_settings() {
 			//customized init settings for entire program backend and front end
@@ -369,18 +433,18 @@ if (!class_exists('youtube_w_analytics')) :
 							var delvideo = confirm("Are you sure you want to delete video #" + vidid + "?");
 							if (delvideo == true) {
 								//delete video
+								
+								var tmpData = {
+											'action': 'deletevideo',
+											'videoid': vidid,
+											'hashtag': btoa(vidid),
+								};
+								
+								jQuery.post(ajaxurl,tmpData, function (response) {
 
-								 jQuery.ajax({
-							
-										url: '<?php echo YWA_URL; ?>delete_video.php',
-										type: 'POST',
-										data: {
-											videoid: vidid,
-											hashtag: btoa(vidid),
-										},
-										success: function(result){
-											alert(result);
-											if (result == "true") {
+											console.log(response);
+
+											if (response == "true") {
 												//hide both rows for video
 
 												jQuery("#ytvid_" + vidid).hide();
@@ -389,10 +453,9 @@ if (!class_exists('youtube_w_analytics')) :
 											} else {
 												jQuery('#vuerror').multiline("There was a problem deleting the video.\n");
 											}
-										   }
-							
+									
 								});
-
+								
 								jQuery('#vuerror').multiline("Video has been deleted.\n");
 							}
 						});
@@ -418,12 +481,10 @@ if (!class_exists('youtube_w_analytics')) :
 								jQuery('#vuerror').multiline(errormsg);
 							} else {
 								//process submit
-								 jQuery.ajax({
-							
-										url: '<?php echo YWA_URL; ?>update_videos.php',
-										type: 'POST',
-										data: jQuery('#video_' + vidid).serialize(),
-										success: function(result){
+								
+								jQuery.post(ajaxurl,jQuery('#video_' + vidid).serialize(), function (response) {
+											
+											console.log(response);
 											
 											jQuery('#disp_ytvtitle_' + vidid).text(ytvtitle);
 											jQuery('#disp_youtubeid_' + vidid).text(youtubeid);
@@ -435,18 +496,14 @@ if (!class_exists('youtube_w_analytics')) :
 											
 											jQuery("#ytvid_" + vidid).show();
 											jQuery("#edit_ytvid_" + vidid ).hide();
-											if (result == "true") {
+											if (response == "true") {
 												jQuery('#vuerror').multiline("Your video has been updated in the database.");
 											} else {
 												jQuery('#vuerror').multiline("There was a problem updating the video in the database. Please try again.");	
 											}
-											 //$('#response').remove();
-											 //$('#container').append('<p id = "response">' + result + '</p>');
-											 //$('#loading').fadeOut(500);
-										   }
-							
+									
 								});
-								
+
 							}
 						});
 
@@ -490,6 +547,7 @@ if (!class_exists('youtube_w_analytics')) :
                     <form method="post" name="video_<?php echo $video['id']; ?>" id="video_<?php echo $video['id']; ?>">
 					<?php wp_nonce_field("update_video_" . $video['id']); ?>
                     <input type="hidden" name="videoid" value="<?php echo $video['id']; ?>" />
+                    <input type="hidden" name="action" value="updatevideo" />
                     <td style="text-align:center; font-weight:bold">&#91;ytwa vid="<?php echo $video['id']; ?>"&#93;</td>
                     <td style="width:140px;"><input type="text" id="ytvtitle_<?php echo $video['id']; ?>" name="ytvtitle_<?php echo $video['id']; ?>" value="<?php echo $vars['ytvtitle']; ?>" style="width:120px;" /></td>
                     <td style="width:140px;"><input type="text" id="youtubeid_<?php echo $video['id']; ?>" name="youtubeid_<?php echo $video['id']; ?>" value="<?php echo $video['youtubeid']; ?>" style="width:120px;" /></td>
